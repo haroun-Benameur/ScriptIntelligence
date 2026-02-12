@@ -1,20 +1,32 @@
 # main.py
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import json
 import os
 
-from agents.fsd_agent import generate_tests_with_llm
+from agents.fsd_agent import generate_tests_with_llm, extract_requirements
 from services.drift_service import (
     analyze_fsd,
     read_fsd_text,
     load_pending_state,
     commit_pending_state,
+    save_uploaded_fsd,
 )
 
 app = FastAPI()
+
+# CORS pour le frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 TESTS_FILE = "tests/generated_tests.json"
 
@@ -106,10 +118,62 @@ def run_workflow():
             "generated_tests": new_tests,
         },
         "reports": {
-            "test_generation_report": report1_path,
-            "drift_report": report2_path,
+            "test_generation_report": os.path.basename(report1_path),
+            "drift_report": os.path.basename(report2_path),
         },
     }
+
+
+@app.post("/upload-fsd")
+async def upload_fsd(file: UploadFile = File(...)):
+    """
+    Upload un fichier FSD (.md). Le contenu est sauvegardé et utilisé pour analyse/génération.
+    """
+    if not file.filename or not file.filename.lower().endswith(".md"):
+        raise HTTPException(status_code=400, detail="Seuls les fichiers .md sont acceptés.")
+    content = (await file.read()).decode("utf-8", errors="replace")
+    save_uploaded_fsd(content)
+    return {"status": "uploaded", "filename": file.filename}
+
+
+@app.post("/generate-tests")
+def generate_tests_initial():
+    """
+    Génération initiale : lit le FSD uploadé, extrait toutes les exigences, génère les tests.
+    Utilisé lorsqu'il n'y a pas d'état précédent (première utilisation ou nouveau FSD).
+    """
+    fsd_content = read_fsd_text()
+    requirements = extract_requirements(fsd_content)
+    if not requirements:
+        raise HTTPException(status_code=400, detail="Aucune exigence trouvée dans le FSD. Format attendu: ## REQ-XXX: Title")
+
+    new_tests = generate_tests_with_llm(requirements, fsd_content)
+    _save_tests(new_tests)
+    commit_pending_state(fsd_content=fsd_content, new_requirements=requirements)
+
+    from utils.report_generator import generate_test_generation_report
+
+    report_path = generate_test_generation_report(new_tests)
+    return {
+        "status": "tests_generated",
+        "requirements_count": len(requirements),
+        "generated_tests_count": len(new_tests),
+        "generated_tests": new_tests,
+        "reports": {"test_generation_report": os.path.basename(report_path)},
+    }
+
+
+@app.get("/reports/{filename:path}")
+def get_report(filename: str):
+    """Récupère le contenu d'un rapport pour affichage ou téléchargement."""
+    reports_dir = os.path.join(os.path.dirname(__file__), "reports")
+    safe_name = os.path.basename(filename)
+    path = os.path.normpath(os.path.join(reports_dir, safe_name))
+    if not os.path.abspath(path).startswith(os.path.abspath(reports_dir)):
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Rapport non trouvé")
+    return FileResponse(path, filename=safe_name)
 
 
 @app.get("/analyze-fsd")
@@ -183,8 +247,8 @@ def regenerate_tests(request: RegenerateRequest):
         "total_tests": len(all_tests),
         "generated_tests": new_tests,
         "reports": {
-            "test_generation_report": report1_path,
-            "drift_report": report2_path,
+            "test_generation_report": os.path.basename(report1_path),
+            "drift_report": os.path.basename(report2_path),
         },
     }
 

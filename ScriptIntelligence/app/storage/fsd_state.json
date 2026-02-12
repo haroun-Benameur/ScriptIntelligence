@@ -1,5 +1,5 @@
 {
-  "current_hash": "d85f91730796bf9ebf07c9891a7a3558ee9c4d6907781bc0b58d22ce9c8a1c70",
+  "current_hash": "31f68922108fe2df3876136965aafc1e4d08637667ba890700c30bc73ca227c6",
   "requirements": [
     {
       "requirement_id": "REQ-USER-001",
@@ -38,7 +38,31 @@
     {
       "hash": "d85f91730796bf9ebf07c9891a7a3558ee9c4d6907781bc0b58d22ce9c8a1c70",
       "timestamp": "2026-02-12T08:08:32.632958Z"
+    },
+    {
+      "hash": "31f68922108fe2df3876136965aafc1e4d08637667ba890700c30bc73ca227c6",
+      "timestamp": "2026-02-12T08:53:02.658733Z"
+    },
+    {
+      "hash": "31f68922108fe2df3876136965aafc1e4d08637667ba890700c30bc73ca227c6",
+      "timestamp": "2026-02-12T08:54:55.313624Z"
+    },
+    {
+      "hash": "31f68922108fe2df3876136965aafc1e4d08637667ba890700c30bc73ca227c6",
+      "timestamp": "2026-02-12T08:55:26.934664Z"
+    },
+    {
+      "hash": "93a1003b279a2cd167b3d28ac3e61c0f6bb87f3f84ff2747d2862c98dab52877",
+      "timestamp": "2026-02-12T08:56:38.613474Z"
+    },
+    {
+      "hash": "93a1003b279a2cd167b3d28ac3e61c0f6bb87f3f84ff2747d2862c98dab52877",
+      "timestamp": "2026-02-12T08:57:03.433062Z"
+    },
+    {
+      "hash": "31f68922108fe2df3876136965aafc1e4d08637667ba890700c30bc73ca227c6",
+      "timestamp": "2026-02-12T08:57:27.620623Z"
     }
   ],
-  "fsd_content": "# Functional Specification Document (FSD)\n\n## Project: User & Order Management API\n\n---\n\n# 1. User Management\n\n## REQ-USER-001: Create User\n\n### Description\nThe system shall allow creation of a new user.\n\n### Inputs\n- name (string, required)\n- email (string, required, unique)\n\n### Expected Behavior\n- If email does not exist → user is created\n- If email already exists → raise ValueError\n\n### Output\n- JSON containing id, name, email\n\n---\n\n## REQ-USER-002: Get User By Email\n\n### Description\nThe system shall return a user by email...\n\n### Inputs\n- email (string, required)\n\n### Expected Behavior\n- If user exists → return user data\n- If not → raise ValueError\n\n---\n\n# 2. Order Management\n\n## REQ-ORDER-001: Create Order\n\n### Description\nThe system shall create an order linked to a user.\n\n### Inputs\n- user_email (string)\n- product_name (string)\n- quantity (int > 0)\n\n### Expected Behavior\n- If user exists → create order\n- If user does not exist → raise ValueError\n\n### Output\n- JSON containing order_id, user_email, product_name, quantity\n\n---\n\n## REQ-ORDER-002: Calculate Order Total\n\n### Description\nThe system shall calculate total price.\n\n### Inputs\n- unit_price (float > 00)\n- quantity (int > 10)\n\n### Expected Behavior\n- Return unit_price * quantity\n"
+  "fsd_content": "# Functional Specification Document (FSD)\n\n\n\n## Project: User & Order Management API\n\n\n\n---\n\n\n\n# 1. User Management\n\n\n\n## REQ-USER-001: Create User\n\n\n\n### Description\n\nThe system shall allow creation of a new user.\n\n\n\n### Inputs\n\n- name (string, required)\n\n- email (string, required, unique)\n\n\n\n### Expected Behavior\n\n- If email does not exist → user is created\n\n- If email already exists → raise ValueError\n\n\n\n### Output\n\n- JSON containing id, name, email\n\n\n\n---\n\n\n\n## REQ-USER-002: Get User By Email\n\n\n\n### Description\n\nThe system shall return a user by email...\n\n\n\n### Inputs\n\n- email (string, required)\n\n\n\n### Expected Behavior\n\n- If user exists → return user data\n\n- If not → raise ValueError\n\n\n\n---\n\n\n\n# 2. Order Management\n\n\n\n## REQ-ORDER-001: Create Order\n\n\n\n### Description\n\nThe system shall create an order linked to a user.\n\n\n\n### Inputs\n\n- user_email (string)\n\n- product_name (string)\n\n- quantity (int > 0)\n\n\n\n### Expected Behavior\n\n- If user exists → create order\n\n- If user does not exist → raise ValueError\n\n\n\n### Output\n\n- JSON containing order_id, user_email, product_name, quantity\n\n\n\n---\n\n\n\n## REQ-ORDER-002: Calculate Order Total\n\n\n\n### Description\n\nThe system shall calculate total price.\n\n\n\n### Inputs\n\n- unit_price (float > 00)\n\n- quantity (int > 10)\n\n\n\n### Expected Behavior\n\n- Return unit_price * quantity\n\n"
 }

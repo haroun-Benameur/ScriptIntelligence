@@ -7,8 +7,16 @@ from typing import List, Dict, Any, Optional
 from agents.fsd_agent import extract_requirements
 
 FSD_PATH = "../docs/FSD.md"
+UPLOADED_FSD_FILE = "storage/uploaded_fsd.md"
 STATE_FILE = "storage/fsd_state.json"
 PENDING_FILE = "storage/pending_fsd_analysis.json"
+
+
+def save_uploaded_fsd(content: str) -> None:
+    """Sauvegarde le contenu FSD uploadé par l'utilisateur."""
+    os.makedirs(os.path.dirname(UPLOADED_FSD_FILE), exist_ok=True)
+    with open(UPLOADED_FSD_FILE, "w", encoding="utf-8") as f:
+        f.write(content)
 
 
 def _compute_hash(content: str) -> str:
@@ -57,6 +65,10 @@ def _detect_changes(
 
 
 def read_fsd_text() -> str:
+    """Lit le FSD : priorité au fichier uploadé, sinon docs/FSD.md."""
+    if os.path.exists(UPLOADED_FSD_FILE):
+        with open(UPLOADED_FSD_FILE, "r", encoding="utf-8") as f:
+            return f.read()
     with open(FSD_PATH, "r", encoding="utf-8") as f:
         return f.read()
 

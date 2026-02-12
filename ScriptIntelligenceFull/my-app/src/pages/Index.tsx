@@ -4,6 +4,7 @@ import PipelineFlow from "@/components/PipelineFlow";
 import SpecCoverage from "@/components/SpecCoverage";
 import QualityGate from "@/components/QualityGate";
 import WorkflowSection from "@/components/WorkflowSection";
+import FSDUploadWorkflow from "@/components/FSDUploadWorkflow";
 import { agents } from "@/data/agents";
 
 const Index = () => {
@@ -25,6 +26,12 @@ const Index = () => {
             FSD → Scénarios → Tests → Exécution → Coverage → Quality Gate
           </p>
         </header>
+
+        {/* FSD Upload & Test Generation */}
+        <section>
+          <SectionTitle>Upload FSD & Génération de tests</SectionTitle>
+          <FSDUploadWorkflow />
+        </section>
 
         {/* Pipeline */}
         <section>
