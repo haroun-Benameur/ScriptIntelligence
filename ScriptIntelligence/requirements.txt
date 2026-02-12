@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pytest
+pytest-json-report
+requests
+python-dotenv
+google-genai

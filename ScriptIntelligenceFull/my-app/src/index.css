@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 6%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 18% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 18% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 185 80% 50%;
+    --primary-foreground: 220 20% 6%;
+
+    --secondary: 220 16% 16%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 220 14% 14%;
+    --muted-foreground: 215 12% 55%;
+
+    --accent: 280 70% 60%;
+    --accent-foreground: 210 20% 95%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 145 65% 45%;
+    --success-foreground: 220 20% 6%;
+
+    --warning: 38 90% 55%;
+    --warning-foreground: 220 20% 6%;
+
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 185 80% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 18% 8%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 185 80% 50%;
+    --sidebar-primary-foreground: 220 20% 6%;
+    --sidebar-accent: 220 16% 14%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 220 14% 18%;
+    --sidebar-ring: 185 80% 50%;
+
+    /* Custom tokens */
+    --glow-primary: 185 80% 50%;
+    --glow-accent: 280 70% 60%;
+    --glow-success: 145 65% 45%;
+    --glow-warning: 38 90% 55%;
+    --glow-destructive: 0 72% 55%;
+    --agent-fsd: 185 80% 50%;
+    --agent-drift: 280 70% 60%;
+    --agent-test: 145 65% 45%;
+    --agent-exec: 38 90% 55%;
+    --agent-coverage: 200 80% 55%;
+    --agent-orchestrator: 320 70% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  code, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.15), 0 0 60px hsl(var(--glow-primary) / 0.05);
+  }
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(var(--glow-accent) / 0.15), 0 0 60px hsl(var(--glow-accent) / 0.05);
+  }
+  .glow-success {
+    box-shadow: 0 0 20px hsl(var(--glow-success) / 0.15), 0 0 60px hsl(var(--glow-success) / 0.05);
+  }
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+  .border-glow {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+  .bg-grid {
+    background-image: 
+      linear-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
