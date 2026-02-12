@@ -2,7 +2,7 @@
 
 import os
 from dotenv import load_dotenv
-from google import genai  # pip install google-genai
+from google import genai  
 
 from utils.json_cleaner import clean_and_parse_json
 
@@ -10,7 +10,6 @@ load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Initialisation du client Gemini
 if not API_KEY:
     raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
 

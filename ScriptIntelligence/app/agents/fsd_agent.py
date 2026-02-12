@@ -1,4 +1,3 @@
-# agents/fsd_agent.py
 
 import os
 import json
@@ -16,14 +15,25 @@ def read_fsd() -> str:
         return f.read()
 
 
-def extract_requirements(fsd_text: str) -> List[Dict[str, str]]:
+def extract_requirements(fsd_text: str) -> List[Dict[str, Any]]:
     """
-    Extraction simple des exigences à partir des titres de type:
-    ## REQ-USER-001: Create User
+    Extraction des exigences avec le bloc complet pour détecter les changements.
+    Retourne requirement_id, description (titre), et content (bloc complet pour comparaison).
     """
-    pattern = r"## (REQ-[A-Z-0-9-]+): (.+)"
-    matches = re.findall(pattern, fsd_text)
-    return [{"requirement_id": m[0], "description": m[1]} for m in matches]
+    pattern = r"## (REQ-[A-Z0-9-]+): ([^\n]+)"
+    matches = list(re.finditer(pattern, fsd_text))
+    result = []
+    for i, m in enumerate(matches):
+        rid, title = m.group(1), m.group(2).strip()
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(fsd_text)
+        content = fsd_text[start:end].strip()
+        result.append({
+            "requirement_id": rid,
+            "description": title,
+            "content": content,
+        })
+    return result
 
 
 def generate_tests_with_llm(requirements: List[Dict[str, Any]], fsd_text: str) -> List[Dict[str, Any]]:

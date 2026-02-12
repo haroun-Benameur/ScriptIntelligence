@@ -58,7 +58,9 @@ def _detect_changes(
         if rid not in old_by_id:
             added.append(new_req)
         else:
-            if new_req.get("description") != old_by_id[rid].get("description"):
+            new_content = new_req.get("content") or new_req.get("description", "")
+            old_content = old_by_id[rid].get("content") or old_by_id[rid].get("description", "")
+            if new_content != old_content:
                 updated.append(new_req)
 
     for rid, old_req in old_by_id.items():

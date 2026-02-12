@@ -1,72 +1,131 @@
 [
   {
     "requirement_id": "REQ-USER-001",
-    "test_name": "Create User - Success",
-    "description": "Verify that a user is successfully created when a unique email is provided.",
+    "test_name": "Create New User Success",
+    "description": "Verify that a user is successfully created when the email is unique.",
     "inputs": {
-      "name": "John Doe",
-      "email": "john.doe@example.com"
+      "name": "Alice Smith",
+      "email": "alice.smith@example.com"
     },
-    "expected_output": "JSON object with unique id, name: 'John Doe', email: 'john.doe@example.com'"
+    "expected_output": "JSON containing generated id, name: 'Alice Smith', email: 'alice.smith@example.com'"
   },
   {
     "requirement_id": "REQ-USER-001",
-    "test_name": "Create User - Duplicate Email Error",
-    "description": "Verify that attempting to create a user with an email that already exists raises a ValueError.",
+    "test_name": "Create User Duplicate Email Failure",
+    "description": "Verify that a ValueError is raised when attempting to create a user with an existing email.",
     "inputs": {
-      "name": "Jane Doe",
-      "email": "john.doe@example.com"
+      "name": "Alice Duplicate",
+      "email": "alice.smith@example.com"
+    },
+    "expected_output": "ValueError"
+  },
+  {
+    "requirement_id": "REQ-USER-002",
+    "test_name": "Get Existing User By Email",
+    "description": "Verify that the system returns correct user data when a valid email is provided.",
+    "inputs": {
+      "email": "alice.smith@example.com"
+    },
+    "expected_output": "JSON object with user data (id, name, email)"
+  },
+  {
+    "requirement_id": "REQ-USER-002",
+    "test_name": "Get User By Email Not Found",
+    "description": "Verify that a ValueError is raised when searching for an email that does not exist.",
+    "inputs": {
+      "email": "nonexistent@example.com"
+    },
+    "expected_output": "ValueError"
+  },
+  {
+    "requirement_id": "REQ-ORDER-002",
+    "test_name": "Calculate Order Total Correctness",
+    "description": "Verify that the total price is calculated correctly by multiplying unit price and quantity.",
+    "inputs": {
+      "unit_price": 15.5,
+      "quantity": 20
+    },
+    "expected_output": "310.0"
+  },
+  {
+    "requirement_id": "REQ-USER-001",
+    "test_name": "Create User - Success",
+    "description": "Verify that a user is successfully created when the email is unique.",
+    "inputs": {
+      "name": "Alice Smith",
+      "email": "alice@example.com"
+    },
+    "expected_output": "JSON containing generated id, name: 'Alice Smith', email: 'alice@example.com'"
+  },
+  {
+    "requirement_id": "REQ-USER-001",
+    "test_name": "Create User - Duplicate Email Failure",
+    "description": "Verify that attempting to create a user with an already registered email raises a ValueError.",
+    "inputs": {
+      "name": "Alice Duplicate",
+      "email": "alice@example.com"
     },
     "expected_output": "ValueError"
   },
   {
     "requirement_id": "REQ-USER-002",
     "test_name": "Get User By Email - Success",
-    "description": "Verify that the system returns the correct user data for an existing email address.",
+    "description": "Verify that user data is returned when a valid registered email is provided.",
     "inputs": {
-      "email": "john.doe@example.com"
+      "email": "alice@example.com"
     },
-    "expected_output": "User data object matching the email 'john.doe@example.com'"
+    "expected_output": "JSON object containing user details for alice@example.com"
   },
   {
     "requirement_id": "REQ-USER-002",
     "test_name": "Get User By Email - Not Found",
-    "description": "Verify that searching for a non-existent email raises a ValueError.",
+    "description": "Verify that a ValueError is raised when searching for an email that does not exist.",
     "inputs": {
-      "email": "missing@example.com"
+      "email": "nonexistent@example.com"
     },
     "expected_output": "ValueError"
   },
   {
     "requirement_id": "REQ-ORDER-001",
-    "test_name": "Create Order - Valid User",
-    "description": "Verify that an order is created successfully when linked to an existing user.",
+    "test_name": "Create Order - Success",
+    "description": "Verify that an order is created successfully when linked to an existing user email.",
     "inputs": {
-      "user_email": "john.doe@example.com",
-      "product_name": "Smartphone",
-      "quantity": 1
+      "user_email": "alice@example.com",
+      "product_name": "Widget A",
+      "quantity": 5
     },
-    "expected_output": "JSON object with order_id, user_email: 'john.doe@example.com', product_name: 'Smartphone', quantity: 1"
+    "expected_output": "JSON containing order_id, user_email: 'alice@example.com', product_name: 'Widget A', quantity: 5"
   },
   {
     "requirement_id": "REQ-ORDER-001",
-    "test_name": "Create Order - Invalid User",
-    "description": "Verify that creating an order for a user email that does not exist raises a ValueError.",
+    "test_name": "Create Order - User Does Not Exist",
+    "description": "Verify that order creation fails with a ValueError if the provided user email is not found in the system.",
     "inputs": {
-      "user_email": "nonexistent@example.com",
-      "product_name": "Smartphone",
+      "user_email": "unknown@example.com",
+      "product_name": "Widget A",
       "quantity": 1
+    },
+    "expected_output": "ValueError"
+  },
+  {
+    "requirement_id": "REQ-ORDER-001",
+    "test_name": "Create Order - Invalid Quantity",
+    "description": "Verify that order creation fails if the quantity is 0 or less, as per the requirement 'quantity (int > 0)'.",
+    "inputs": {
+      "user_email": "alice@example.com",
+      "product_name": "Widget A",
+      "quantity": 0
     },
     "expected_output": "ValueError"
   },
   {
     "requirement_id": "REQ-ORDER-002",
     "test_name": "Calculate Order Total - Standard Calculation",
-    "description": "Verify that the system correctly calculates total price as unit_price * quantity.",
+    "description": "Verify that the total price is calculated correctly based on unit_price * quantity.",
     "inputs": {
-      "unit_price": 10.5,
-      "quantity": 20
+      "unit_price": 20.0,
+      "quantity": 15
     },
-    "expected_output": "210.0"
+    "expected_output": "300.0"
   }
 ]
