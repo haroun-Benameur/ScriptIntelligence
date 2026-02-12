@@ -48,7 +48,7 @@ The system shall create an order linked to a user.
 ### Inputs
 - user_email (string)
 - product_name (string)
-- quantity (int > 0)
+- quantity (int >0)
 
 ### Expected Behavior
 - If user exists → create order

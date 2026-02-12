@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, type TestCase, type AnalyzeResponse } from "@/lib/api";
 
-type ReportType = "test" | "drift" | null;
+type ReportType = "test" | "drift" | "pytest" | null;
 
 export default function FSDUploadWorkflow() {
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [uploaded, setUploaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,9 +30,11 @@ export default function FSDUploadWorkflow() {
   const [tests, setTests] = useState<TestCase[]>([]);
   const [reportTest, setReportTest] = useState<string | null>(null);
   const [reportDrift, setReportDrift] = useState<string | null>(null);
+  const [reportPytest, setReportPytest] = useState<string | null>(null);
   const [reportTestFilename, setReportTestFilename] = useState<string | null>(null);
   const [reportDriftFilename, setReportDriftFilename] = useState<string | null>(null);
-  const [activeReport, setActiveReport] = useState<ReportType>(null);
+  const [reportPytestFilename, setReportPytestFilename] = useState<string | null>(null);
+  const [activeReport, setActiveReport] = useState<ReportType | "pytest">(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -44,8 +48,10 @@ export default function FSDUploadWorkflow() {
     setAnalyzeResult(null);
     setReportTest(null);
     setReportDrift(null);
+    setReportPytest(null);
     setReportTestFilename(null);
     setReportDriftFilename(null);
+    setReportPytestFilename(null);
     setActiveReport(null);
   };
 
@@ -102,7 +108,13 @@ export default function FSDUploadWorkflow() {
         const txt = await api.fetchReportText(result.reports.drift_report);
         setReportDrift(txt);
       }
-      setActiveReport(result.reports.drift_report ? "drift" : "test");
+      if (result.reports.pytest_execution_report) {
+        setReportPytestFilename(result.reports.pytest_execution_report);
+        const txt = await api.fetchReportText(result.reports.pytest_execution_report);
+        setReportPytest(txt);
+      }
+      setActiveReport(result.reports.pytest_execution_report ? "pytest" : (result.reports.drift_report ? "drift" : "test"));
+      queryClient.invalidateQueries({ queryKey: ["spec-coverage"] });
       toast.success(`${result.generated_tests_count} tests régénérés`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de la régénération");
@@ -122,8 +134,16 @@ export default function FSDUploadWorkflow() {
         setReportTest(txt);
         setReportDrift(null);
         setReportDriftFilename(null);
+      }
+      if (result.reports.pytest_execution_report) {
+        setReportPytestFilename(result.reports.pytest_execution_report);
+        const txt = await api.fetchReportText(result.reports.pytest_execution_report);
+        setReportPytest(txt);
+        setActiveReport("pytest");
+      } else {
         setActiveReport("test");
       }
+      queryClient.invalidateQueries({ queryKey: ["spec-coverage"] });
       toast.success(`${result.generated_tests_count} tests générés`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de la génération");
@@ -231,7 +251,7 @@ export default function FSDUploadWorkflow() {
       </AlertDialog>
 
       {/* Report & Tests */}
-      {(reportTest || reportDrift || tests.length > 0) && (
+      {(reportTest || reportDrift || reportPytest || tests.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle>Rapport et tests générés</CardTitle>
@@ -241,12 +261,15 @@ export default function FSDUploadWorkflow() {
           </CardHeader>
           <CardContent>
             <Tabs value={activeReport ?? "test"} onValueChange={(v) => setActiveReport(v as ReportType)}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="test" disabled={!reportTest}>
-                  Rapport de génération
+                  Génération
                 </TabsTrigger>
                 <TabsTrigger value="drift" disabled={!reportDrift}>
-                  Rapport de drift
+                  Drift
+                </TabsTrigger>
+                <TabsTrigger value="pytest" disabled={!reportPytest}>
+                  Pytest
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="test" className="mt-4">
@@ -293,6 +316,30 @@ export default function FSDUploadWorkflow() {
                     )}
                     <ScrollArea className="h-[400px] rounded-md border p-4">
                       <pre className="text-xs whitespace-pre-wrap font-mono">{reportDrift}</pre>
+                    </ScrollArea>
+                  </>
+                )}
+              </TabsContent>
+              <TabsContent value="pytest" className="mt-4">
+                {reportPytest && (
+                  <>
+                    {reportPytestFilename && (
+                      <div className="flex justify-end mb-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadReport(reportPytestFilename!)}
+                          asChild
+                        >
+                          <a href={api.getReportUrl(reportPytestFilename!)} download={reportPytestFilename}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Télécharger
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                    <ScrollArea className="h-[400px] rounded-md border p-4">
+                      <pre className="text-xs whitespace-pre-wrap font-mono">{reportPytest}</pre>
                     </ScrollArea>
                   </>
                 )}

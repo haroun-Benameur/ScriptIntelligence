@@ -37,3 +37,10 @@ def calculate_order_total(unit_price: float, quantity: int) -> float:
         raise ValueError("Quantity must be positive")
 
     return unit_price * quantity
+
+
+def reset_for_testing() -> None:
+    """Reset DB for pytest isolation. Use only in tests."""
+    global order_id_counter, orders_db
+    orders_db = []
+    order_id_counter = 1

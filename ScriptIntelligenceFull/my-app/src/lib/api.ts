@@ -47,12 +47,28 @@ export interface AnalyzeResponse {
   };
 }
 
+export interface PytestResult {
+  name: string;
+  status: "passed" | "failed";
+  duration: number;
+}
+
+export interface PytestResults {
+  passed: number;
+  failed: number;
+  total: number;
+  duration: number;
+  results: PytestResult[];
+  error?: string;
+}
+
 export interface GenerateResponse {
   status: string;
   requirements_count: number;
   generated_tests_count: number;
   generated_tests: TestCase[];
-  reports: { test_generation_report: string };
+  pytest_results?: PytestResults;
+  reports: { test_generation_report: string; pytest_execution_report?: string };
 }
 
 export interface RegenerateResponse {
@@ -60,7 +76,8 @@ export interface RegenerateResponse {
   generated_tests_count: number;
   total_tests: number;
   generated_tests: TestCase[];
-  reports: { test_generation_report: string; drift_report: string };
+  pytest_results?: PytestResults;
+  reports: { test_generation_report: string; drift_report: string; pytest_execution_report?: string };
 }
 
 export const api = {
@@ -107,4 +124,29 @@ export const api = {
   async listTests(): Promise<TestCase[]> {
     return fetchApi<TestCase[]>("/tests");
   },
+
+  async getSpecCoverage(): Promise<SpecCoverageResponse> {
+    return fetchApi<SpecCoverageResponse>("/spec-coverage");
+  },
 };
+
+export interface SpecCoverageScenario {
+  id: string;
+  name: string;
+  covered: boolean;
+  critical: boolean;
+}
+
+export interface SpecCoverageResponse {
+  scenarios: SpecCoverageScenario[];
+  covered: number;
+  total: number;
+  percentage: number;
+  uncovered_critical: SpecCoverageScenario[];
+  quality_gate: {
+    tests_pass: boolean;
+    spec_coverage_ok: boolean;
+    critical_covered: boolean;
+    all_pass: boolean;
+  };
+}

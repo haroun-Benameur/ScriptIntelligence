@@ -189,3 +189,51 @@ def generate_drift_report(
         f.write("\n".join(lines))
 
     return path
+
+
+def generate_pytest_execution_report(pytest_results: dict, filename_prefix: str = "pytest_execution") -> str:
+    """
+    Génère un rapport MD des résultats pytest (success/failed).
+    pytest_results: dict avec passed, failed, total, results[], duration, error?
+    """
+    _ensure_reports_dir()
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{filename_prefix}_{ts}.md"
+    path = os.path.join(REPORTS_DIR, filename)
+
+    passed = pytest_results.get("passed", 0)
+    failed = pytest_results.get("failed", 0)
+    total = pytest_results.get("total", passed + failed)
+    duration = pytest_results.get("duration", 0)
+    results = pytest_results.get("results", [])
+    error = pytest_results.get("error")
+
+    lines = [
+        "# Rapport d'exécution Pytest",
+        "",
+        f"**Date:** {datetime.now().isoformat()}",
+        f"**Total:** {total} | **Réussis:** {passed} | **Échoués:** {failed} | **Durée:** {duration}s",
+        "",
+    ]
+    if error:
+        lines.append(f"**Erreur:** {error}")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## Détail des tests")
+    lines.append("")
+
+    for r in results:
+        status = r.get("status", "unknown")
+        name = r.get("name", "?")
+        dur = r.get("duration", 0)
+        icon = "✅" if status == "passed" else "❌"
+        status_fr = "réussi" if status == "passed" else "échoué"
+        lines.append(f"- {icon} **{name}** — {status_fr} ({dur}s)")
+        lines.append("")
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+    return path

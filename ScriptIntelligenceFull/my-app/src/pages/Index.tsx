@@ -2,7 +2,6 @@ import { Brain } from "lucide-react";
 import AgentCard from "@/components/AgentCard";
 import PipelineFlow from "@/components/PipelineFlow";
 import SpecCoverage from "@/components/SpecCoverage";
-import QualityGate from "@/components/QualityGate";
 import WorkflowSection from "@/components/WorkflowSection";
 import FSDUploadWorkflow from "@/components/FSDUploadWorkflow";
 import { agents } from "@/data/agents";
@@ -57,16 +56,10 @@ const Index = () => {
           <WorkflowSection />
         </section>
 
-        {/* Coverage + Quality Gate */}
-        <section className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <SectionTitle>Spec Coverage — Innovation Clé</SectionTitle>
-            <SpecCoverage />
-          </div>
-          <div>
-            <SectionTitle>Quality Gate</SectionTitle>
-            <QualityGate testsPass={true} specCoverageOk={false} criticalCovered={false} />
-          </div>
+        {/* Spec Coverage + Quality Gate (données backend) */}
+        <section>
+          <SectionTitle>Spec Coverage — Innovation Clé</SectionTitle>
+          <SpecCoverage />
         </section>
 
         {/* Footer */}

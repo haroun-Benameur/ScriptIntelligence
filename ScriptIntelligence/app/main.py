@@ -15,6 +15,7 @@ from services.drift_service import (
     load_pending_state,
     commit_pending_state,
     save_uploaded_fsd,
+    load_state,
 )
 
 app = FastAPI()
@@ -29,6 +30,27 @@ app.add_middleware(
 )
 
 TESTS_FILE = "tests/generated_tests.json"
+PYTEST_STATUS_FILE = "storage/last_pytest.json"
+CRITICAL_REQUIREMENTS = {"REQ-USER-001", "REQ-USER-002", "REQ-ORDER-001", "REQ-ORDER-002"}  # Exigences critiques
+
+
+def _load_pytest_status() -> Dict[str, Any]:
+    if not os.path.exists(PYTEST_STATUS_FILE):
+        return {"passed": 0, "failed": 0, "total": 0}
+    try:
+        with open(PYTEST_STATUS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return {"passed": 0, "failed": 0, "total": 0}
+
+
+def _save_pytest_status(pytest_results: Dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(PYTEST_STATUS_FILE), exist_ok=True)
+    with open(PYTEST_STATUS_FILE, "w", encoding="utf-8") as f:
+        json.dump(
+            {"passed": pytest_results.get("passed", 0), "failed": pytest_results.get("failed", 0), "total": pytest_results.get("total", 0)},
+            f,
+        )
 
 
 class RegenerateRequest(BaseModel):
@@ -95,7 +117,13 @@ def run_workflow():
     _save_tests(all_tests)
     commit_pending_state(fsd_content=fsd_content, new_requirements=new_requirements)
 
-    from utils.report_generator import generate_test_generation_report, generate_drift_report
+    from utils.report_generator import (
+        generate_test_generation_report,
+        generate_drift_report,
+        generate_pytest_execution_report,
+    )
+    from utils.test_code_generator import write_generated_tests
+    from utils.pytest_runner import run_pytest
 
     report1_path = generate_test_generation_report(all_tests)
     report2_path = generate_drift_report(
@@ -104,6 +132,16 @@ def run_workflow():
         changes=changes,
         generated_tests=new_tests,
         old_requirements=drift_result.get("old_requirements"),
+    )
+    write_generated_tests(all_tests)
+    pytest_results = {"passed": 0, "failed": 0, "total": 0, "results": [], "duration": 0}
+    if new_tests:
+        write_generated_tests(new_tests, subset=new_tests)
+        drift_path = os.path.join(os.path.dirname(__file__), "tests", "test_generated_drift.py")
+        pytest_results = run_pytest(drift_path)
+    _save_pytest_status(pytest_results)
+    pytest_report_path = generate_pytest_execution_report(
+        pytest_results, filename_prefix="pytest_drift_execution"
     )
 
     return {
@@ -117,9 +155,11 @@ def run_workflow():
             "removed": [r["requirement_id"] for r in removed],
             "generated_tests": new_tests,
         },
+        "pytest_results": pytest_results,
         "reports": {
             "test_generation_report": os.path.basename(report1_path),
             "drift_report": os.path.basename(report2_path),
+            "pytest_execution_report": os.path.basename(pytest_report_path),
         },
     }
 
@@ -139,8 +179,8 @@ async def upload_fsd(file: UploadFile = File(...)):
 @app.post("/generate-tests")
 def generate_tests_initial():
     """
-    Génération initiale : lit le FSD uploadé, extrait toutes les exigences, génère les tests.
-    Utilisé lorsqu'il n'y a pas d'état précédent (première utilisation ou nouveau FSD).
+    Génération initiale : lit le FSD uploadé, extrait toutes les exigences, génère les tests,
+    exécute pytest et produit un rapport d'exécution MD.
     """
     fsd_content = read_fsd_text()
     requirements = extract_requirements(fsd_content)
@@ -151,15 +191,26 @@ def generate_tests_initial():
     _save_tests(new_tests)
     commit_pending_state(fsd_content=fsd_content, new_requirements=requirements)
 
-    from utils.report_generator import generate_test_generation_report
+    from utils.report_generator import generate_test_generation_report, generate_pytest_execution_report
+    from utils.test_code_generator import write_generated_tests
+    from utils.pytest_runner import run_pytest
 
     report_path = generate_test_generation_report(new_tests)
+    write_generated_tests(new_tests)
+    pytest_results = run_pytest()
+    _save_pytest_status(pytest_results)
+    pytest_report_path = generate_pytest_execution_report(pytest_results)
+    reports = {
+        "test_generation_report": os.path.basename(report_path),
+        "pytest_execution_report": os.path.basename(pytest_report_path),
+    }
     return {
         "status": "tests_generated",
         "requirements_count": len(requirements),
         "generated_tests_count": len(new_tests),
         "generated_tests": new_tests,
-        "reports": {"test_generation_report": os.path.basename(report_path)},
+        "pytest_results": pytest_results,
+        "reports": reports,
     }
 
 
@@ -230,7 +281,13 @@ def regenerate_tests(request: RegenerateRequest):
     _save_tests(all_tests)
     commit_pending_state(fsd_content=fsd_content, new_requirements=new_requirements)
 
-    from utils.report_generator import generate_test_generation_report, generate_drift_report
+    from utils.report_generator import (
+        generate_test_generation_report,
+        generate_drift_report,
+        generate_pytest_execution_report,
+    )
+    from utils.test_code_generator import write_generated_tests
+    from utils.pytest_runner import run_pytest
 
     report1_path = generate_test_generation_report(all_tests)
     report2_path = generate_drift_report(
@@ -241,14 +298,72 @@ def regenerate_tests(request: RegenerateRequest):
         old_requirements=old_requirements,
     )
 
+    write_generated_tests(all_tests)
+    pytest_results = {"passed": 0, "failed": 0, "total": 0, "results": [], "duration": 0}
+    if new_tests:
+        write_generated_tests(new_tests, subset=new_tests)
+        drift_pytest_path = os.path.join(os.path.dirname(__file__), "tests", "test_generated_drift.py")
+        pytest_results = run_pytest(drift_pytest_path)
+    _save_pytest_status(pytest_results)
+    pytest_report_path = generate_pytest_execution_report(
+        pytest_results, filename_prefix="pytest_drift_execution"
+    )
+    reports = {
+        "test_generation_report": os.path.basename(report1_path),
+        "drift_report": os.path.basename(report2_path),
+        "pytest_execution_report": os.path.basename(pytest_report_path),
+    }
     return {
         "status": "tests_generated",
         "generated_tests_count": len(new_tests),
         "total_tests": len(all_tests),
         "generated_tests": new_tests,
-        "reports": {
-            "test_generation_report": os.path.basename(report1_path),
-            "drift_report": os.path.basename(report2_path),
+        "pytest_results": pytest_results,
+        "reports": reports,
+    }
+
+
+@app.get("/spec-coverage")
+def get_spec_coverage():
+    """
+    Retourne le Spec Coverage: scénarios (exigences FSD), couverture par tests, et qualité.
+    Utilisé par le frontend pour afficher Spec Coverage et Quality Gate.
+    """
+    state = load_state()
+    requirements = state.get("requirements", [])
+    if not requirements:
+        fsd_content = read_fsd_text()
+        requirements = extract_requirements(fsd_content)
+    tests = _load_tests()
+    pytest_status = _load_pytest_status()
+    covered_ids = {t.get("requirement_id") for t in tests}
+    scenarios = [
+        {
+            "id": r["requirement_id"],
+            "name": r.get("description", r["requirement_id"]),
+            "covered": r["requirement_id"] in covered_ids,
+            "critical": r["requirement_id"] in CRITICAL_REQUIREMENTS,
+        }
+        for r in requirements
+    ]
+    covered = sum(1 for s in scenarios if s["covered"])
+    total = len(scenarios)
+    percentage = round((covered / total) * 100) if total > 0 else 0
+    uncovered_critical = [s for s in scenarios if not s["covered"] and s["critical"]]
+    tests_pass = pytest_status.get("total", 0) > 0 and pytest_status.get("failed", 0) == 0
+    spec_coverage_ok = percentage >= 80
+    critical_covered = len(uncovered_critical) == 0
+    return {
+        "scenarios": scenarios,
+        "covered": covered,
+        "total": total,
+        "percentage": percentage,
+        "uncovered_critical": uncovered_critical,
+        "quality_gate": {
+            "tests_pass": tests_pass,
+            "spec_coverage_ok": spec_coverage_ok,
+            "critical_covered": critical_covered,
+            "all_pass": tests_pass and spec_coverage_ok and critical_covered,
         },
     }
 

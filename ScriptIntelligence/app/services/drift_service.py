@@ -23,7 +23,7 @@ def _compute_hash(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
-def _load_state() -> Dict[str, Any]:
+def load_state() -> Dict[str, Any]:
     if not os.path.exists(STATE_FILE):
         return {"current_hash": None, "requirements": [], "history": [], "fsd_content": None}
     with open(STATE_FILE, "r", encoding="utf-8") as f:
@@ -31,6 +31,10 @@ def _load_state() -> Dict[str, Any]:
             return json.load(f)
         except json.JSONDecodeError:
             return {"current_hash": None, "requirements": [], "history": [], "fsd_content": None}
+
+
+def _load_state() -> Dict[str, Any]:
+    return load_state()
 
 
 def _save_state(state: Dict[str, Any]) -> None:

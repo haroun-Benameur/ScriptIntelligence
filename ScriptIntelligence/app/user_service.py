@@ -27,3 +27,10 @@ def get_user_by_email(email: str) -> User:
             return user
 
     raise ValueError("User not found")
+
+
+def reset_for_testing() -> None:
+    """Reset DB for pytest isolation. Use only in tests."""
+    global user_id_counter, users_db
+    users_db = []
+    user_id_counter = 1
