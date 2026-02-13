@@ -1,5 +1,5 @@
 {
-  "current_hash": "37b88614be962a0d77ba10fd268ccb990fb5cb99b2a459aaf4892e34464b7f07",
+  "current_hash": "68ef0fd6cf76de987994a6ce39e5c2560411928944a4fa511f2ec38bb18cfa13",
   "requirements": [
     {
       "requirement_id": "REQ-USER-001",
@@ -14,12 +14,12 @@
     {
       "requirement_id": "REQ-ORDER-001",
       "description": "Create Order",
-      "content": "## REQ-ORDER-001: Create Order\n\n\n\n### Description\n\nThe system shall create an order linked to a user.\n\n\n\n### Inputs\n\n- user_email (string)\n\n- product_name (string)\n\n- quantity (int >0)\n\n\n\n### Expected Behavior\n\n- If user exists → create order\n\n- If user does not exist → raise ValueError\n\n\n\n### Output\n\n- JSON containing order_id, user_email, product_name, quantity\n\n\n\n---"
+      "content": "## REQ-ORDER-001: Create Order\n\n\n\n### Description\n\nThe system shall create an order linked to a user.\n\n\n\n### Inputs\n\n- user_email (string)\n\n- product_name (string)\n\n- quantity (int >1)\n\n\n\n### Expected Behavior\n\n- If user exists → create order\n\n- If user does not exist → raise ValueError\n\n\n\n### Output\n\n- JSON containing order_id, user_email, product_name, quantity\n\n\n\n---"
     },
     {
       "requirement_id": "REQ-ORDER-002",
       "description": "Calculate Order Total",
-      "content": "## REQ-ORDER-002: Calculate Order Total\n\n\n\n### Description\n\nThe system shall calculate total price.\n\n\n\n### Inputs\n\n- unit_price (float > 00)\n\n- quantity (int > 10)\n\n\n\n### Expected Behavior\n\n- Return unit_price * quantity"
+      "content": "## REQ-ORDER-002: Calculate Order Total\n\n\n\n### Description\n\nThe system shall calculate total price.\n\n\n\n### Inputs\n\n- unit_price (float > 00)\n\n- quantity (int > 0)\n\n\n\n### Expected Behavior\n\n- Return unit_price * quantity"
     }
   ],
   "history": [
@@ -202,7 +202,31 @@
     {
       "hash": "37b88614be962a0d77ba10fd268ccb990fb5cb99b2a459aaf4892e34464b7f07",
       "timestamp": "2026-02-12T14:31:11.735710Z"
+    },
+    {
+      "hash": "37b88614be962a0d77ba10fd268ccb990fb5cb99b2a459aaf4892e34464b7f07",
+      "timestamp": "2026-02-12T14:57:52.246898Z"
+    },
+    {
+      "hash": "b94194edcca244200b3b26687e3a9d127a0731e70924f98fb4411dab12af021c",
+      "timestamp": "2026-02-12T15:02:11.363508Z"
+    },
+    {
+      "hash": "b94194edcca244200b3b26687e3a9d127a0731e70924f98fb4411dab12af021c",
+      "timestamp": "2026-02-13T12:54:32.586593Z"
+    },
+    {
+      "hash": "b94194edcca244200b3b26687e3a9d127a0731e70924f98fb4411dab12af021c",
+      "timestamp": "2026-02-13T13:06:03.211524Z"
+    },
+    {
+      "hash": "68ef0fd6cf76de987994a6ce39e5c2560411928944a4fa511f2ec38bb18cfa13",
+      "timestamp": "2026-02-13T13:07:02.149724Z"
+    },
+    {
+      "hash": "68ef0fd6cf76de987994a6ce39e5c2560411928944a4fa511f2ec38bb18cfa13",
+      "timestamp": "2026-02-13T13:08:56.170004Z"
     }
   ],
-  "fsd_content": "# Functional Specification Document (FSD)\n\n\n\n## Project: User & Order Management API\n\n\n\n---\n\n\n\n# 1. User Management\n\n\n\n## REQ-USER-001: Create User\n\n\n\n### Description\n\nThe system shall allow creation of a new user.\n\n\n\n### Inputs\n\n- name (string, required)\n\n- email (string, required, unique)\n\n\n\n### Expected Behavior\n\n- If email does not exist → user is created\n\n- If email already exists → raise ValueError\n\n\n\n### Output\n\n- JSON containing id, name, email\n\n\n\n---\n\n\n\n## REQ-USER-002: Get User By Email\n\n\n\n### Description\n\nThe system shall return a user by email...\n\n\n\n### Inputs\n\n- email (string, required)\n\n\n\n### Expected Behavior\n\n- If user exists → return user data\n\n- If not → raise ValueError\n\n\n\n---\n\n\n\n# 2. Order Management\n\n\n\n## REQ-ORDER-001: Create Order\n\n\n\n### Description\n\nThe system shall create an order linked to a user.\n\n\n\n### Inputs\n\n- user_email (string)\n\n- product_name (string)\n\n- quantity (int >0)\n\n\n\n### Expected Behavior\n\n- If user exists → create order\n\n- If user does not exist → raise ValueError\n\n\n\n### Output\n\n- JSON containing order_id, user_email, product_name, quantity\n\n\n\n---\n\n\n\n## REQ-ORDER-002: Calculate Order Total\n\n\n\n### Description\n\nThe system shall calculate total price.\n\n\n\n### Inputs\n\n- unit_price (float > 00)\n\n- quantity (int > 10)\n\n\n\n### Expected Behavior\n\n- Return unit_price * quantity\n\n"
+  "fsd_content": "# Functional Specification Document (FSD)\n\n\n\n## Project: User & Order Management API\n\n\n\n---\n\n\n\n# 1. User Management\n\n\n\n## REQ-USER-001: Create User\n\n\n\n### Description\n\nThe system shall allow creation of a new user.\n\n\n\n### Inputs\n\n- name (string, required)\n\n- email (string, required, unique)\n\n\n\n### Expected Behavior\n\n- If email does not exist → user is created\n\n- If email already exists → raise ValueError\n\n\n\n### Output\n\n- JSON containing id, name, email\n\n\n\n---\n\n\n\n## REQ-USER-002: Get User By Email\n\n\n\n### Description\n\nThe system shall return a user by email...\n\n\n\n### Inputs\n\n- email (string, required)\n\n\n\n### Expected Behavior\n\n- If user exists → return user data\n\n- If not → raise ValueError\n\n\n\n---\n\n\n\n# 2. Order Management\n\n\n\n## REQ-ORDER-001: Create Order\n\n\n\n### Description\n\nThe system shall create an order linked to a user.\n\n\n\n### Inputs\n\n- user_email (string)\n\n- product_name (string)\n\n- quantity (int >1)\n\n\n\n### Expected Behavior\n\n- If user exists → create order\n\n- If user does not exist → raise ValueError\n\n\n\n### Output\n\n- JSON containing order_id, user_email, product_name, quantity\n\n\n\n---\n\n\n\n## REQ-ORDER-002: Calculate Order Total\n\n\n\n### Description\n\nThe system shall calculate total price.\n\n\n\n### Inputs\n\n- unit_price (float > 00)\n\n- quantity (int > 0)\n\n\n\n### Expected Behavior\n\n- Return unit_price * quantity\n\n"
 }

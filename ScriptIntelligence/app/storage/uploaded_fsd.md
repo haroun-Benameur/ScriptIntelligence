@@ -48,7 +48,7 @@ The system shall create an order linked to a user.
 ### Inputs
 - user_email (string)
 - product_name (string)
-- quantity (int >0)
+- quantity (int >1)
 
 ### Expected Behavior
 - If user exists → create order
@@ -66,7 +66,7 @@ The system shall calculate total price.
 
 ### Inputs
 - unit_price (float > 00)
-- quantity (int > 10)
+- quantity (int > 0)
 
 ### Expected Behavior
 - Return unit_price * quantity

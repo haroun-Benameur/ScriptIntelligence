@@ -1,35 +1,162 @@
+"""
+Agent Drift : détection des changements dans le FSD, gestion de l'état et du pending.
+Remplace drift_service.
+"""
 
-import hashlib
-import json
 import os
+import json
+import hashlib
+from datetime import datetime
+from typing import List, Dict, Any, Optional
 
-FSD_PATH = "../docs/FSD.md"
-HASH_STORAGE = "storage/fsd_hash.json"
+from agents.fsd_agent import extract_requirements
 
-
-def compute_hash(file_path):
-    with open(file_path, "rb") as f:
-        return hashlib.sha256(f.read()).hexdigest()
-
-
-def has_fsd_changed():
-    current_hash = compute_hash(FSD_PATH)
-
-    if not os.path.exists(HASH_STORAGE):
-        save_hash(current_hash)
-        return True
-
-    with open(HASH_STORAGE, "r") as f:
-        stored_hash = json.load(f).get("hash")
-
-    if stored_hash != current_hash:
-        save_hash(current_hash)
-        return True
-
-    return False
+_APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FSD_PATH = os.path.join(os.path.dirname(_APP_DIR), "docs", "FSD.md")
+UPLOADED_FSD_FILE = os.path.join(_APP_DIR, "storage", "uploaded_fsd.md")
+STATE_FILE = os.path.join(_APP_DIR, "storage", "fsd_state.json")
+PENDING_FILE = os.path.join(_APP_DIR, "storage", "pending_fsd_analysis.json")
 
 
-def save_hash(new_hash):
-    os.makedirs("storage", exist_ok=True)
-    with open(HASH_STORAGE, "w") as f:
-        json.dump({"hash": new_hash}, f)
+def save_uploaded_fsd(content: str) -> None:
+    """Sauvegarde le contenu FSD uploadé par l'utilisateur."""
+    os.makedirs(os.path.dirname(UPLOADED_FSD_FILE), exist_ok=True)
+    with open(UPLOADED_FSD_FILE, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def read_fsd_text() -> str:
+    """Lit le FSD : priorité au fichier uploadé, sinon docs/FSD.md."""
+    if os.path.exists(UPLOADED_FSD_FILE):
+        with open(UPLOADED_FSD_FILE, "r", encoding="utf-8") as f:
+            return f.read()
+    if os.path.exists(FSD_PATH):
+        with open(FSD_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    return ""
+
+
+def load_state() -> Dict[str, Any]:
+    """Charge l'état actuel du FSD (hash, requirements, history)."""
+    if not os.path.exists(STATE_FILE):
+        return {"current_hash": None, "requirements": [], "history": [], "fsd_content": None}
+    with open(STATE_FILE, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {"current_hash": None, "requirements": [], "history": [], "fsd_content": None}
+
+
+def _compute_hash(content: str) -> str:
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def _save_state(state: Dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+
+def _detect_changes(
+    old_requirements: List[Dict[str, Any]],
+    new_requirements: List[Dict[str, Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    old_by_id = {r["requirement_id"]: r for r in old_requirements}
+    new_by_id = {r["requirement_id"]: r for r in new_requirements}
+
+    added: List[Dict[str, Any]] = []
+    updated: List[Dict[str, Any]] = []
+    removed: List[Dict[str, Any]] = []
+
+    for rid, new_req in new_by_id.items():
+        if rid not in old_by_id:
+            added.append(new_req)
+        else:
+            new_content = new_req.get("content") or new_req.get("description", "")
+            old_content = old_by_id[rid].get("content") or old_by_id[rid].get("description", "")
+            if new_content != old_content:
+                updated.append(new_req)
+
+    for rid, old_req in old_by_id.items():
+        if rid not in new_by_id:
+            removed.append(old_req)
+
+    return {"added": added, "updated": updated, "removed": removed}
+
+
+def analyze_fsd(fsd_content: str, persist_pending: bool) -> Dict[str, Any]:
+    """
+    Analyse le FSD pour détecter le drift.
+    Retourne drift_detected, changes (added/updated/removed), new_requirements, etc.
+    """
+    new_hash = _compute_hash(fsd_content)
+    state = load_state()
+    old_hash = state.get("current_hash")
+    old_requirements = state.get("requirements", [])
+
+    if old_hash == new_hash:
+        if persist_pending and os.path.exists(PENDING_FILE):
+            os.remove(PENDING_FILE)
+        return {
+            "drift_detected": False,
+            "changes": {"added": [], "updated": [], "removed": []},
+            "new_requirements": old_requirements,
+        }
+
+    new_requirements = extract_requirements(fsd_content)
+    changes = _detect_changes(old_requirements, new_requirements)
+    old_fsd_content = state.get("fsd_content") or ""
+
+    result = {
+        "drift_detected": True,
+        "changes": changes,
+        "new_requirements": new_requirements,
+        "new_hash": new_hash,
+        "old_fsd_content": old_fsd_content,
+        "old_requirements": old_requirements,
+    }
+
+    if persist_pending:
+        os.makedirs(os.path.dirname(PENDING_FILE), exist_ok=True)
+        pending_payload = {
+            "fsd_content": fsd_content,
+            "fsd_hash": new_hash,
+            "new_requirements": new_requirements,
+            "changes": changes,
+            "old_fsd_content": old_fsd_content,
+            "old_requirements": old_requirements,
+        }
+        with open(PENDING_FILE, "w", encoding="utf-8") as f:
+            json.dump(pending_payload, f, indent=2, ensure_ascii=False)
+
+    return result
+
+
+def load_pending_state() -> Optional[Dict[str, Any]]:
+    """Charge l'état pending (analyse FSD en attente de régénération)."""
+    if not os.path.exists(PENDING_FILE):
+        return None
+    with open(PENDING_FILE, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return None
+
+
+def commit_pending_state(fsd_content: str, new_requirements: List[Dict[str, Any]]) -> None:
+    """Valide l'état après régénération des tests."""
+    new_hash = _compute_hash(fsd_content)
+    state = load_state()
+
+    history = state.get("history", [])
+    history.append({"hash": new_hash, "timestamp": datetime.utcnow().isoformat() + "Z"})
+
+    state["current_hash"] = new_hash
+    state["requirements"] = new_requirements
+    state["history"] = history
+    state["fsd_content"] = fsd_content
+
+    _save_state(state)
+
+    if os.path.exists(PENDING_FILE):
+        os.remove(PENDING_FILE)

@@ -15,7 +15,7 @@ const Index = () => {
           <div className="flex items-center justify-center gap-3">
             <Brain className="h-8 w-8 text-primary" />
             <h1 className="text-3xl md:text-4xl font-bold text-gradient-primary font-mono">
-              Spec Intelligence
+              Script Intelligence
             </h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">

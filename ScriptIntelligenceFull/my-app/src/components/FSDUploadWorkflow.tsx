@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Upload, FileCode, RefreshCw, Download, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Upload, FileCode, RefreshCw, Download, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, type TestCase, type AnalyzeResponse } from "@/lib/api";
+import MarkdownViewer from "@/components/MarkdownViewer";
 
 type ReportType = "test" | "drift" | "pytest" | null;
 
@@ -26,7 +27,6 @@ export default function FSDUploadWorkflow() {
   const [uploaded, setUploaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
-  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [tests, setTests] = useState<TestCase[]>([]);
   const [reportTest, setReportTest] = useState<string | null>(null);
   const [reportDrift, setReportDrift] = useState<string | null>(null);
@@ -35,6 +35,7 @@ export default function FSDUploadWorkflow() {
   const [reportDriftFilename, setReportDriftFilename] = useState<string | null>(null);
   const [reportPytestFilename, setReportPytestFilename] = useState<string | null>(null);
   const [activeReport, setActiveReport] = useState<ReportType | "pytest">(null);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -54,42 +55,6 @@ export default function FSDUploadWorkflow() {
     setReportPytestFilename(null);
     setActiveReport(null);
   };
-
-  const handleUpload = useCallback(async () => {
-    if (!file) return;
-    setLoading(true);
-    try {
-      await api.uploadFsd(file);
-      setUploaded(true);
-      toast.success(`Fichier ${file.name} uploadé`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erreur lors de l'upload";
-      if (msg.includes("abort") || msg.includes("timeout")) {
-        toast.error("Connexion au backend expirée. Vérifiez que le backend tourne sur http://127.0.0.1:8000");
-      } else {
-        toast.error(msg);
-      }
-      return;
-    } finally {
-      setLoading(false);
-    }
-
-    // Analyser le FSD après upload réussi
-    setLoading(true);
-    try {
-      const result = await api.analyzeFsd();
-      setAnalyzeResult(result);
-      if (result.drift_detected) {
-        setShowRegenerateDialog(true);
-      } else {
-        toast.info("Aucun changement détecté dans le FSD");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de l'analyse");
-    } finally {
-      setLoading(false);
-    }
-  }, [file]);
 
   const handleRegenerate = useCallback(async () => {
     setShowRegenerateDialog(false);
@@ -115,13 +80,47 @@ export default function FSDUploadWorkflow() {
       }
       setActiveReport(result.reports.pytest_execution_report ? "pytest" : (result.reports.drift_report ? "drift" : "test"));
       queryClient.invalidateQueries({ queryKey: ["spec-coverage"] });
-      toast.success(`${result.generated_tests_count} tests régénérés`);
+      toast.success(`${result.generated_tests_count} tests régénérés (modifications uniquement), pytest exécuté`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de la régénération");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [queryClient]);
+
+  const handleUpload = useCallback(async () => {
+    if (!file) return;
+    setLoading(true);
+    try {
+      await api.uploadFsd(file);
+      setUploaded(true);
+      toast.success(`Fichier ${file.name} uploadé`);
+      const result = await api.analyzeFsd();
+      setAnalyzeResult(result);
+      if (result.drift_detected) {
+        setShowRegenerateDialog(true);
+      } else {
+        const hasTests = (await api.listTests()).length > 0;
+        if (hasTests) {
+          toast.info("Aucun changement détecté. Les rapports et tests restent affichés.");
+          const allTests = await api.listTests();
+          setTests(allTests);
+        } else {
+          toast.info("Fichier prêt. Cliquez sur « Générer les tests » pour créer les test cases.");
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur";
+      if (msg.includes("abort") || msg.includes("timeout")) {
+        toast.error("Connexion au backend expirée. Vérifiez que le backend tourne sur http://127.0.0.1:8000");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [file]);
+
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -159,8 +158,8 @@ export default function FSDUploadWorkflow() {
     a.click();
   };
 
+  const hasChanges = analyzeResult?.drift_detected ?? false;
   const changes = analyzeResult?.changes;
-  const hasChanges = analyzeResult?.drift_detected && changes;
   const addedCount = changes?.added?.length ?? 0;
   const updatedCount = changes?.updated?.length ?? 0;
   const removedCount = changes?.removed?.length ?? 0;
@@ -221,7 +220,7 @@ export default function FSDUploadWorkflow() {
         </CardContent>
       </Card>
 
-      {/* Drift Dialog */}
+      {/* Dialog : demander à l'utilisateur de régénérer les tests (modifications uniquement) */}
       <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -231,7 +230,7 @@ export default function FSDUploadWorkflow() {
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm">
-                <p>Le fichier FSD a été modifié. Souhaitez-vous régénérer les test cases ?</p>
+                <p>Le fichier FSD a été modifié. Voulez-vous régénérer uniquement les tests concernant les modifications ?</p>
                 <ul className="list-disc list-inside text-muted-foreground">
                   {addedCount > 0 && <li>Exigences ajoutées : {addedCount}</li>}
                   {updatedCount > 0 && <li>Exigences modifiées : {updatedCount}</li>}
@@ -241,10 +240,10 @@ export default function FSDUploadWorkflow() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel>Non</AlertDialogCancel>
             <AlertDialogAction onClick={handleRegenerate} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Régénérer les tests
+              Oui, régénérer les tests
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -291,7 +290,7 @@ export default function FSDUploadWorkflow() {
                       </div>
                     )}
                     <ScrollArea className="h-[400px] rounded-md border p-4">
-                      <pre className="text-xs whitespace-pre-wrap font-mono">{reportTest}</pre>
+                      <MarkdownViewer content={reportTest} className="text-sm" />
                     </ScrollArea>
                   </>
                 )}
@@ -315,7 +314,7 @@ export default function FSDUploadWorkflow() {
                       </div>
                     )}
                     <ScrollArea className="h-[400px] rounded-md border p-4">
-                      <pre className="text-xs whitespace-pre-wrap font-mono">{reportDrift}</pre>
+                      <MarkdownViewer content={reportDrift} className="text-sm" />
                     </ScrollArea>
                   </>
                 )}
@@ -339,7 +338,7 @@ export default function FSDUploadWorkflow() {
                       </div>
                     )}
                     <ScrollArea className="h-[400px] rounded-md border p-4">
-                      <pre className="text-xs whitespace-pre-wrap font-mono">{reportPytest}</pre>
+                      <MarkdownViewer content={reportPytest} className="text-sm" />
                     </ScrollArea>
                   </>
                 )}
